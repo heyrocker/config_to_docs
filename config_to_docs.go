@@ -41,32 +41,35 @@ func main() {
 	}
 	for key, value := range configData {
 		fmt.Printf("Key:%s ", key)
-		printVal(value, 1)
+		printVal(value, 1, key)
 	}
 }
 
-func printVal(i interface{}, depth int) {
+func printVal(i interface{}, depth int, original_key string) {
 	typ := reflect.TypeOf(i).Kind()
 	if typ == reflect.Int || typ == reflect.String || typ == reflect.Bool {
 		fmt.Printf("%s%v\n", strings.Repeat(" ", depth), i)
 	} else if typ == reflect.Slice {
 		fmt.Printf("\n")
-		printSlice(i.([]interface{}), depth+1)
+		printSlice(i.([]interface{}), depth+1, original_key)
 	} else if typ == reflect.Map {
 		fmt.Printf("\n")
-		printMap(i.(map[interface{}]interface{}), depth+1)
+		printMap(i.(map[interface{}]interface{}), depth+1, original_key)
 	}
 }
 
-func printMap(m map[interface{}]interface{}, depth int) {
+func printMap(m map[interface{}]interface{}, depth int, original_key string) {
+	var combined_key string
+
 	for k, v := range m {
-		fmt.Printf("%sKey:%s", strings.Repeat(" ", depth), k.(string))
-		printVal(v, depth+1)
+		combined_key = original_key + "." + k.(string)
+		fmt.Printf("%sKey:%s", strings.Repeat(" ", depth), combined_key)
+		printVal(v, depth+1, combined_key)
 	}
 }
 
-func printSlice(slc []interface{}, depth int) {
+func printSlice(slc []interface{}, depth int, original_key string) {
 	for _, v := range slc {
-		printVal(v, depth+1)
+		printVal(v, depth+1, original_key)
 	}
 }
