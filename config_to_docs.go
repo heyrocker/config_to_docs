@@ -1,3 +1,21 @@
+// This code is written to read a YAML file, iterate its keys, check
+// for those keys in a template, then replace any matches that are found
+// with the values. YAML does not force uniquness in keys outside of a
+// specific branch in the tree. For instance the following is legal.
+//
+// key:
+//   key2: hello
+// another_key:
+//   key2: world
+//
+// The template would distinguish between these two by referring to
+// them as
+//
+// key.key2
+// another_key.key2
+//
+// We generate these combined keys along the way as we iterate the yaml.
+
 package main
 
 import (
@@ -45,19 +63,26 @@ func main() {
 	}
 }
 
+// Print a specific value for a key, depending on what type it is.
+// If it is a standard type just print the value, if it is a map
+// (indicating a new branch in the tree) then call a function to
+// handle that case.
 func printVal(i interface{}, depth int, original_key string) {
-	typ := reflect.TypeOf(i).Kind()
-	if typ == reflect.Int || typ == reflect.String || typ == reflect.Bool {
+	val_type := reflect.TypeOf(i).Kind()
+	if val_type == reflect.Int || val_type == reflect.String || val_type == reflect.Bool {
 		fmt.Printf("%s%v\n", strings.Repeat(" ", depth), i)
-	} else if typ == reflect.Slice {
+	} else if val_type == reflect.Slice {
 		fmt.Printf("\n")
 		printSlice(i.([]interface{}), depth+1, original_key)
-	} else if typ == reflect.Map {
+	} else if val_type == reflect.Map {
 		fmt.Printf("\n")
 		printMap(i.(map[interface{}]interface{}), depth+1, original_key)
 	}
 }
 
+// Print an entire child branch, and generate unique keys for each value.
+// If you encounter another child branch, this code will recurse via
+// printVal().
 func printMap(m map[interface{}]interface{}, depth int, original_key string) {
 	var combined_key string
 
