@@ -25,10 +25,21 @@ import (
 	"strings"
 )
 
+var start_delimiter = "{{ "
+var end_delimiter = " }}"
+
+var template = `
+title: {{ name }}
+---
+# {{ name }}
+{{ description }}
+<img src="{{ third_party_settings.type_tray.type_icon }}">
+`
+
 var data = `
 uuid: 3cc9b304-6eca-4b3c-b9d8-cb07789c91e2
 langcode: en
-status: true
+bool_value: true
 dependencies:
   module:
     - menu_ui
@@ -45,9 +56,7 @@ name: Event
 type: event
 description: "Events open to the public, or official meetings they should be informed about."
 help: ""
-new_revision: true
 preview_mode: 1
-display_submitted: false
 `
 
 func main() {
@@ -58,43 +67,44 @@ func main() {
 		panic(err)
 	}
 	for key, value := range configData {
-		fmt.Printf("Key:%s ", key)
-		printVal(value, 1, key)
+		replaceVal(value, 1, key)
 	}
+
+	fmt.Printf(template)
 }
 
 // Print a specific value for a key, depending on what type it is.
 // If it is a standard type just print the value, if it is a map
 // (indicating a new branch in the tree) then call a function to
 // handle that case.
-func printVal(i interface{}, depth int, original_key string) {
+func replaceVal(i interface{}, depth int, original_key string) {
 	val_type := reflect.TypeOf(i).Kind()
 	if val_type == reflect.Int || val_type == reflect.String || val_type == reflect.Bool {
-		fmt.Printf("%s%v\n", strings.Repeat(" ", depth), i)
+		// Replace any matching key in the template with the value here
+		template = strings.Replace(template, start_delimiter+original_key+end_delimiter, fmt.Sprintf("%v", i), -1)
 	} else if val_type == reflect.Slice {
-		fmt.Printf("\n")
-		printSlice(i.([]interface{}), depth+1, original_key)
+		// Deal with slices then replace
+		replaceSlice(i.([]interface{}), depth+1, original_key)
 	} else if val_type == reflect.Map {
-		fmt.Printf("\n")
-		printMap(i.(map[interface{}]interface{}), depth+1, original_key)
+		// Deal with a new branch
+		replaceMap(i.(map[interface{}]interface{}), depth+1, original_key)
 	}
 }
 
 // Print an entire child branch, and generate unique keys for each value.
 // If you encounter another child branch, this code will recurse via
-// printVal().
-func printMap(m map[interface{}]interface{}, depth int, original_key string) {
+// replaceVal().
+func replaceMap(m map[interface{}]interface{}, depth int, original_key string) {
 	var combined_key string
 
 	for k, v := range m {
 		combined_key = original_key + "." + k.(string)
-		fmt.Printf("%sKey:%s", strings.Repeat(" ", depth), combined_key)
-		printVal(v, depth+1, combined_key)
+		replaceVal(v, depth+1, combined_key)
 	}
 }
 
-func printSlice(slc []interface{}, depth int, original_key string) {
+func replaceSlice(slc []interface{}, depth int, original_key string) {
 	for _, v := range slc {
-		printVal(v, depth+1, original_key)
+		replaceVal(v, depth+1, original_key)
 	}
 }
